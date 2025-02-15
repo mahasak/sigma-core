@@ -7,11 +7,14 @@
   },
   "dependencies": {
     "@elysiajs/cookie": "^0.8.0",
+    "@elysiajs/html": "^1.2.0",
+    "@kitajs/ts-html-plugin": "^4.1.1",
     "@supabase/supabase-js": "^2.48.1",
     "elysia": "latest"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "bun-types": "^1.2.2",
+    "typed-html": "^3.0.1"
   },
   "module": "src/index.js"
 }

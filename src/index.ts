@@ -1,26 +1,38 @@
 import { Elysia } from "elysia";
 import { apiRoutes } from "./routes";
-import { html, Html } from '@elysiajs/html'
-import * as elements from "typed-html"
+import { serverTiming } from '@elysiajs/server-timing'
+import { html } from '@elysiajs/html'
+
+import { logger } from "@bogeychan/elysia-logger";
+
 
 import main from './views/main'
 const app = new Elysia()
+  .trace(async ({ onHandle }) => {
+    onHandle(({ begin, onStop }) => {
+      onStop(({ end }) => {
+        console.log('handle took', end - begin, 'ms')
+      })
+    })
+  })
+  .use(serverTiming())
   .use(html())
-  
-  .get("/", () => "🦊 Sigma core v.0.0.1",  {
-		afterResponse() {
-			console.log('After response')
-		}
-	})
-  .get('/html', ({ set, error }) => {
-    set.headers["content-type"] = 'text/html; charset=utf8'
+  .use(logger())
+  // .use(ElysiaLogging())
+
+
+  .get("/", (ctx) => "🦊 Sigma core v.0.0.1", {
+    afterResponse() {
+      console.log('After response')
+    }
+  })
+
+  .get('/html', (ctx) => {
+    ctx.log.error(ctx, "Context");
+    ctx.log.info(ctx.request, "Request"); // noop
+    ctx.set.headers["content-type"] = 'text/html; charset=utf8'
     return main
-  }
-  , {
-		afterResponse() {
-			console.log('After response')
-		}
-	})
+  })
   .use(apiRoutes)
   .listen(3000);
 

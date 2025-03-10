@@ -1,15 +1,35 @@
 import { html } from '@elysiajs/html';
 import { jwt } from '@elysiajs/jwt'
 import { staticPlugin } from '@elysiajs/static';
-import { Elysia } from 'elysia';
+import { Context, Elysia } from 'elysia';
 import { serverTiming } from '@elysiajs/server-timing'
 import { apiRoutes, pageRoutes } from "./routes";
 
 import { Protected, NotLogged, Logged, Login } from "./views/test";
-import { logger } from "@bogeychan/elysia-logger";
+// import { logger } from "@bogeychan/elysia-logger";
+import { randomUUID } from "node:crypto";
+import {
+  logger,
+  serializers,
+  serializeRequest,
+  type InferContext,
+} from "@bogeychan/elysia-logger";
 
+const mySerializers = {
+  ...serializers,
+  request: (request: Request) => {
+    const url = new URL(request.url);
 
-const app = new Elysia()
+    return {
+      ...serializeRequest(request),
+      // https://http.dev/x-request-id
+      id: request.headers.get("X-Request-ID") ?? randomUUID(),
+      path: url.pathname,
+    };
+  },
+};
+
+const app : Elysia = new Elysia()
   .use(
     jwt({
       name: "jwt",
@@ -27,8 +47,12 @@ const app = new Elysia()
       })
     })
   })
-  // .use(apiRoutes)
-  // @ts-ignore  
+  .get('/', async (ctx: Context) => {
+    (ctx as any).log.error(ctx, "Context");
+    ctx.log?.info(ctx.request, "Request"); // noop
+    ctx.set.headers["content-type"] = 'text/html; charset=utf8'
+    return "test";
+  })
   .use(pageRoutes)
   .listen(3000);
 

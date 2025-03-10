@@ -1,6 +1,6 @@
 import { Html } from '@elysiajs/html';
 import { Elysia, InternalServerError, redirect, t } from 'elysia';
-
+import { jwt } from '@elysiajs/jwt'
 import MainLayout from '../../views/layouts/main';
 import { Logged, Login, NotLogged, Protected } from '../../views/test';
 const users = [
@@ -15,34 +15,34 @@ const users = [
 ];
 
 export const pageRoutes = new Elysia()
- .get('/', async () => {
-    // ctx.log.error(ctx, "Context");
-    // ctx.log.info(ctx.request, "Request"); // noop
-    // ctx.set.headers["content-type"] = 'text/html; charset=utf8'
-    return (<MainLayout><div>test</div></MainLayout>)
-  })
-  // @ts-ignore
-  .get("/home", async ({ jwt, cookie: { auth } }) => {
+.use(
+  jwt({
+      name: "jwt",
+      // This is a secret key, you should change it in production
+      secret: "your secret",
+    })
+  )
+  .get("/home", async ( { jwt, cookie: { auth } }: any) => {
     const authCookie = await jwt.verify(auth?.value);
     console.log(authCookie)
+    //  ctx.log.error(ctx, "Context");
+    // ctx.log.info(ctx.request, "Request"); // noop
+    // ctx.set.headers["content-type"] = 'text/html; charset=utf8'
     return authCookie ? (<Logged></Logged>) : <Login></Login>
   })
-  // @ts-ignore
   .get("/protected", async ({ jwt, cookie: { auth } }) => {
     const authCookie = await jwt.verify(auth?.value);
-    return authCookie ? (
-      <Protected username={authCookie.username} />
+    return authCookie && authCookie.username ? (
+      <Protected username={authCookie.username.toString()} />
     ) : (
       <NotLogged />
     );
   })
   .post(
     "/login",
-    // @ts-ignore
     async ({ jwt, body, set, cookie: { auth } }) => {
       const { password, username } = body;
       console.log(body);
-      // @ts-ignore 
       const user = users.find((user) => user.username === username);
 
       if (user && (await Bun.password.verify(password, user.password))) {
@@ -67,14 +67,7 @@ export const pageRoutes = new Elysia()
       }),
     }
   )
-  .get("/logout", async ({ set, cookie: { auth },redirect }) => {
-   auth?.remove();
-    // set.redirect = "/home";
-    
-    // set.headers = {
-    //   "Hx-redirect": "/home",
-    // };
-    // return "Logged out"
+  .get("/logout", async ({ set, cookie: { auth }, redirect }) => {
+    auth?.remove();
     return redirect('/home')
-    // redirect('/home')
   })
